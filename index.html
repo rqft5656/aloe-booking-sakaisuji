@@ -640,7 +640,7 @@ function getWeekDates(offset) {
 function dateStr(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function displayDate(d) { return `${d.getMonth()+1}月${d.getDate()}日（${DAYS_JA[d.getDay()]}）`; }
 function isToday(d) { const t = new Date(); return d.getFullYear()===t.getFullYear()&&d.getMonth()===t.getMonth()&&d.getDate()===t.getDate(); }
-function isPast(d) { const t = new Date(); t.setHours(0,0,0,0); return d < t; }
+function isPast(d) { const t = new Date(); t.setHours(0,0,0,0); return d <= t; } // 当日予約禁止：今日以前はすべて受付終了
 function isSlotPast(dateStr, time) {
   const now = new Date();
   const [h, m] = time.split(':').map(Number);
@@ -813,7 +813,12 @@ function renderAdmin() {
         el.className = `aslot ${st}`;
         el.dataset.date = ds; el.dataset.time = t;
         el.innerHTML = `<span class="aslot-badge">${icons[st]}</span><span class="aslot-t">${t}</span><span class="aslot-s">${STATUS_LABELS[st]}</span>`;
-        el.addEventListener('click', () => cycleStatus(el, ds, t));
+        if (isSlotPast(ds, t)) {
+          el.className = 'aslot closed';
+          el.innerHTML = `<span class="aslot-badge">−</span><span class="aslot-t">${t}</span><span class="aslot-s">受付終了</span>`;
+        } else {
+          el.addEventListener('click', () => cycleStatus(el, ds, t));
+        }
         grid.appendChild(el);
       });
       block.appendChild(grid);
@@ -926,6 +931,7 @@ onValue(ref(db, 'sakaisuji/slots'), (snapshot) => {
   if (ls) ls.classList.add('hide');
   setTimeout(() => { if (ls) ls.style.display = 'none'; }, 500);
 });
+
 renderPatient();
 setInterval(() => { renderPatient(); }, 60000);
 // 0.8秒後に強制的にローディング非表示
